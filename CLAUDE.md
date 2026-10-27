@@ -128,7 +128,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 - [x] Step 3: docker, cron, process scanners
 - [x] Step 4: eulogy writer
 - [x] Step 5: CLI scan report and graveyard.md
-- [ ] Step 6: bury and resurrect
+- [x] Step 6: bury and resurrect
 - [ ] Step 7: local web UI
 - [ ] Step 8: safety audit
 - [ ] Step 9: demo graveyard and recording
@@ -163,3 +163,11 @@ Record non-obvious choices here as one line each, with the step number.
 - Step 5: markdown cells replace newlines with spaces and escape `\`, `|`, `<`, `>`; home becomes `~` only as a whole path prefix (`/Users/ghostly` is left alone when home is `/Users/ghost`).
 - Step 5: the KIND column uses short labels (branch, container, volume, cron, process) and the table is auto-sized, not expanded, so it fits 80 columns; graveyard.md uses long labels.
 - Step 5: `run_all` takes `stale_days` (default 90) for `--stale-days`; `zombie graveyard` shows `buried_at` to the minute.
+- Step 6: `GraveEntry` gains optional `resurrected_at` (default None); resurrect sets it and keeps the entry. Resurrect picks the newest entry for the id that is not yet resurrected.
+- Step 6: refusals are `BuryRefused` subclasses (NotInLastScan, NotBuryable, ConfirmationMismatch, StaleScan, NotInGraveyard, NotReversible, BranchExists), exit 2; `MutationFailed` (git/docker ran and failed) exits 1.
+- Step 6: `plan_bury` refuses any kind other than git_branch and docker_container even if last_scan.json says buryable, and runs `proc.validate_mutation` on the planned args.
+- Step 6: re-verify uses read-allowlisted git only: `rev-parse --absolute-git-dir` (repo), `rev-parse --verify --quiet refs/heads/<b>^{commit}` (SHA), `merge-base --is-ancestor <sha> <default ref>` (merged), `rev-parse --symbolic-full-name HEAD` (current). Containers use `docker container inspect`: same full id, same name, State.Status `exited`.
+- Step 6: if run_mutation raises or git exits non-zero, the undo entry is removed only when the branch still exists at the recorded SHA; otherwise it is kept. A BaseException (Ctrl-C, crash) leaves it in place; resurrect then refuses because the branch exists.
+- Step 6: `state._atomic_write_json` also fsyncs the state folder after `os.replace`, so the undo entry's rename is durable before git runs (S7).
+- Step 6: `scan_git._default_ref` is now public `default_ref_for`, shared with bury's re-verify.
+- Step 6: `zombie bury --apply` with EOF at the prompt is a refusal (exit 2). Known gap: between re-verify and `git branch -d` a new commit could land; `-d` still refuses if it is unmerged into HEAD, and S2 has no compare-and-delete shape.

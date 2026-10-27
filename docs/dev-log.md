@@ -56,3 +56,11 @@ prompt; text is display-only (S4), so this is a quality issue, not a safety one.
 `--stale-days` and ends with a one-line summary; `zombie graveyard` lists graveyard.json. 223 tests pass,
 ruff clean. Live scan of ~/Developer with gemma3:1b: 5 zombies, 3 buryable, 4.2 s cold; fits 100 and 80
 columns, eulogies wrap. At 80 columns a 15-char branch name can fold mid-word.
+
+## Step 6 (2026-10-27)
+
+`bury.py`: `plan_bury`, `bury` (name match, dry run, live re-verify, undo entry fsynced before
+`git branch -d`, rollback only while the branch still exists), `resurrect` (refuses containers and
+existing names, keeps history via `resurrected_at`). `zombie bury [--apply]` and `zombie resurrect`
+with exit codes 0/2/1. 277 tests pass, ruff clean. Throwaway-repo round trip: bury and resurrect
+restored `feature/login` at the same SHA recorded in graveyard.json.

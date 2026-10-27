@@ -45,7 +45,22 @@ def _atomic_write_json(name: str, data: Any) -> Path:
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+    _fsync_dir(home)
     return target
+
+
+def _fsync_dir(folder: Path) -> None:
+    """Make the rename itself durable, so a crash right after cannot lose the new file (S7)."""
+    try:
+        fd = os.open(folder, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass  # some filesystems refuse fsync on a directory; the file itself is already synced
+    finally:
+        os.close(fd)
 
 
 def load_last_scan() -> list[Zombie]:

@@ -33,3 +33,4 @@ class GraveEntry(BaseModel):
     sha: str | None
     buried_at: str
     reversible: bool
+    resurrected_at: str | None = None  # set by resurrect(); the entry is kept as history

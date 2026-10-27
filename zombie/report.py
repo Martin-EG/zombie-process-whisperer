@@ -135,7 +135,8 @@ def print_graveyard(
             cell(e.title),
             cell(tilde(e.location, home)),
             cell(format_buried_at(e.buried_at)),
-            "yes" if e.reversible else "[dim]no[/dim]",
+            "[green]resurrected[/green]" if e.resurrected_at
+            else "yes" if e.reversible else "[dim]no[/dim]",
         )
     console.print(table)
 

@@ -2,11 +2,13 @@
 
 import argparse
 import logging
+import shlex
 from pathlib import Path
 
-from zombie import state
+from zombie import bury as bury_mod
+from zombie import proc, state
 from zombie.eulogy import eulogize_all
-from zombie.report import print_graveyard, print_report, tilde, write_graveyard_md
+from zombie.report import print_graveyard, print_report, tilde, visible, write_graveyard_md
 from zombie.scan import run_all
 
 
@@ -82,6 +84,71 @@ def _graveyard() -> int:
     return 0
 
 
+def _command(args: list[str]) -> str:
+    return visible(shlex.join(args))
+
+
+def _bury(zombie_id: str, apply: bool) -> int:
+    try:
+        plan = bury_mod.plan_bury(zombie_id)
+    except bury_mod.BuryRefused as exc:
+        print(f"zombie bury: {visible(str(exc))}")
+        return 2
+    z = plan.zombie
+    kind = bury_mod.KIND_NAMES[z.kind]
+    print(f"Plan: bury {kind} '{visible(z.title)}' ({visible(tilde(z.location))})")
+    print(f"  {_command(plan.args)}")
+    if plan.reversible:
+        print(f"  Reversible: yes, with `zombie resurrect {z.id}`")
+    else:
+        print("  Reversible: no")
+    if not apply:
+        print("DRY RUN: nothing was changed. Add --apply to do it.")
+        return 0
+    if not plan.reversible:
+        print("This cannot be undone.")
+    try:
+        typed = input(f"Type the {kind} name to confirm: ")
+    except EOFError:
+        typed = None
+    if typed is None:
+        print("zombie bury: no name typed. Nothing was changed.")
+        return 2
+    try:
+        result = bury_mod.bury(zombie_id, typed, apply=True)
+    except bury_mod.BuryRefused as exc:
+        print(f"zombie bury: {visible(str(exc))}")
+        return 2
+    except bury_mod.MutationFailed as exc:
+        print(f"zombie bury: {visible(str(exc))}. Nothing was deleted.")
+        return 1
+    entry = result.entry
+    if entry is not None and entry.sha:
+        print(f"Buried {kind} '{visible(z.title)}' at {entry.sha[:12]}.")
+        print(f"Undo with `zombie resurrect {z.id}`.")
+    else:
+        print(f"Buried {kind} '{visible(z.title)}'. It cannot be brought back.")
+    return 0
+
+
+def _resurrect(zombie_id: str) -> int:
+    try:
+        result = bury_mod.resurrect(zombie_id)
+    except (bury_mod.BuryRefused, proc.CommandRefused) as exc:
+        print(f"zombie resurrect: {visible(str(exc))}")
+        return 2
+    except bury_mod.MutationFailed as exc:
+        print(f"zombie resurrect: {visible(str(exc))}. Nothing was changed.")
+        return 1
+    e = result.entry
+    print(f"  {_command(result.args)}")
+    print(
+        f"Resurrected branch '{visible(e.title)}' at {e.sha[:12] if e.sha else '?'}"
+        f" in {visible(tilde(e.location))}."
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
@@ -91,6 +158,10 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.command == "graveyard":
         return _graveyard()
+    if args.command == "bury":
+        return _bury(args.id, apply=args.apply)
+    if args.command == "resurrect":
+        return _resurrect(args.id)
     print(f"zombie {args.command}: not implemented yet")
     return 0
 

@@ -89,6 +89,8 @@ def test_s2_only_bury_calls_run_mutation() -> None:
         if rel not in allowed and references_run_mutation(tree)
     ]
     assert offenders == []
+    bury = dict(_sources(PACKAGE))["zombie/bury.py"]
+    assert references_run_mutation(bury)  # the real caller, not an empty stub
 
 
 def test_s3_no_shell_true() -> None:

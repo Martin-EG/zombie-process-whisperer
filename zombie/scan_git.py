@@ -80,7 +80,8 @@ def default_branch(repo: Path) -> str | None:
     return None
 
 
-def _default_ref(repo: Path, name: str) -> str | None:
+def default_ref_for(repo: Path, name: str) -> str | None:
+    """Full ref of the default branch: the local branch, else origin's copy, else None."""
     for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}"):
         if _ref_exists(repo, ref):
             return ref
@@ -95,7 +96,7 @@ def _age_days(timestamp: int, now: datetime) -> int:
 def scan_repo(repo: Path, stale_days: int, now: datetime) -> list[Zombie]:
     repo = repo.resolve()
     default = default_branch(repo)
-    default_ref = _default_ref(repo, default) if default else None
+    default_ref = default_ref_for(repo, default) if default else None
 
     merged: set[str] = set()
     if default_ref:
