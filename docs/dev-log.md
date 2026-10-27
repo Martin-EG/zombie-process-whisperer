@@ -34,3 +34,9 @@ temporarily prints one line per git zombie. 123 tests pass, ruff clean. Scan of 
 isolates failures, sorts, saves `last_scan.json`; `zombie scan` uses it and prints counts per kind.
 Docker fixtures are hand-written in `docker ps/volume ls --format '{{json .}}'` shape (daemon was down,
 so not recorded live). 151 tests pass, ruff clean. Local scan with Docker down: one warning, 0.39 s.
+
+## Step 3 follow-up (2026-10-27)
+
+Scanner checked against a live daemon (Docker 29.8.2): one real exited container found with full id,
+image, status and age. Fixture rows now carry the `HealthStatus` and nested `Platform` fields real
+`docker ps` emits. 151 tests pass, ruff clean.
