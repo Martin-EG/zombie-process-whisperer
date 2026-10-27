@@ -123,7 +123,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 
 ## Build status
 
-- [ ] Step 1: scaffold, models, proc, state
+- [x] Step 1: scaffold, models, proc, state
 - [ ] Step 2: git scanner
 - [ ] Step 3: docker, cron, process scanners
 - [ ] Step 4: eulogy writer
@@ -136,3 +136,9 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 ## Decisions
 
 Record non-obvious choices here as one line each, with the step number.
+
+- Step 1: `run_mutation` requires the `-C <repo>` path to be absolute; relative repo paths are refused.
+- Step 1: branch names containing `@{` are refused before git runs, and `git check-ref-format --branch` output must equal the input (no `@{-N}` expansion).
+- Step 1: regexes use `re.fullmatch`, so a trailing newline never passes container-id or SHA checks.
+- Step 1: `run_read` only checks the executable allowlist, not the command shape; read-only use is enforced by review and the S2 architecture test.
+- Step 1: `last_scan.json` and `graveyard.json` store plain JSON lists of model dumps; `eulogies.json` is a `{zombie_id: text}` map.
