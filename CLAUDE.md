@@ -129,7 +129,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 - [x] Step 4: eulogy writer
 - [x] Step 5: CLI scan report and graveyard.md
 - [x] Step 6: bury and resurrect
-- [ ] Step 7: local web UI
+- [x] Step 7: local web UI
 - [ ] Step 8: safety audit
 - [ ] Step 9: demo graveyard and recording
 
@@ -171,3 +171,9 @@ Record non-obvious choices here as one line each, with the step number.
 - Step 6: `state._atomic_write_json` also fsyncs the state folder after `os.replace`, so the undo entry's rename is durable before git runs (S7).
 - Step 6: `scan_git._default_ref` is now public `default_ref_for`, shared with bury's re-verify.
 - Step 6: `zombie bury --apply` with EOF at the prompt is a refusal (exit 2). Known gap: between re-verify and `git branch -d` a new commit could land; `-d` still refuses if it is unmerged into HEAD, and S2 has no compare-and-delete shape.
+- Step 7: `create_app(root, port, token=None, use_model=True)`; the token and session live in the app closure, the token is set to None once exchanged, and HEAD as well as GET on `/?token=` performs the exchange (so `curl -sI` works). Any later `?token=` on `/` is a 401 even with a valid cookie.
+- Step 7: the CLI binds the 127.0.0.1 socket before scanning (busy port fails fast, exit 2) and hands it to `uvicorn.Server.run(sockets=...)`; `cli.ui_config` sets host 127.0.0.1, `proxy_headers=False`, no access log (the token never lands in a log line).
+- Step 7: responses also send `X-Frame-Options: DENY` (CSP stays exactly `default-src 'self'`); rejections and 500s carry the same headers. Docs and OpenAPI routes are off; `/favicon.ico` is a 204 so browsers log no 404.
+- Step 7: `GET /api/zombies` adds `command` (shlex-joined `plan_bury` args) and `reversible` per buryable item so the dialog shows the exact command before any POST; a `plan_bury` refusal turns the item report-only with its reason. POST bodies are `extra="forbid", strict=True` (`"apply": "yes"` is 422).
+- Step 7: bury refusals (any `BuryRefused`) are 409 with `{"detail": msg}`; resurrect refusals and `CommandRefused` are 409 too; `MutationFailed` is 500. Rescan, bury and resurrect share one lock.
+- Step 7: `zombie ui` prints the URL with `flush=True`; without it a redirected stdout held the URL until exit.

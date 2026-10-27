@@ -1,1 +1,228 @@
-/* Web UI styles (Step 7). */
+/* Web UI styles. No external fonts or images (S8); system monospace stack only. */
+
+:root {
+  --bg: #0b0d0b;
+  --panel: #141814;
+  --panel-edge: #252b24;
+  --text: #d6dccd;
+  --muted: #8b9484;
+  --accent: #9be564;
+  --danger: #e5646a;
+  --font: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at top, #162016 0%, var(--bg) 60%);
+  background-attachment: fixed;
+  color: var(--text);
+  font: 14px/1.5 var(--font);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1, h2, h3 { font-weight: 600; margin: 0; }
+
+.muted { color: var(--muted); }
+
+button {
+  font: inherit;
+  color: var(--bg);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { filter: brightness(1.12); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.secondary { background: transparent; color: var(--text); border-color: var(--panel-edge); }
+button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+button.danger:hover:not(:disabled) { background: var(--danger); color: var(--bg); filter: none; }
+button:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------ header */
+
+.top { padding: 24px 24px 8px; border-bottom: 1px solid var(--panel-edge); }
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+h1 { font-size: 22px; color: var(--accent); text-shadow: 0 0 12px rgba(155, 229, 100, 0.35); }
+
+.root { margin: 6px 0; color: var(--muted); overflow-wrap: anywhere; }
+.root span { color: var(--text); }
+
+.counts { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 8px 0 12px; }
+.counts li {
+  border: 1px solid var(--panel-edge);
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--muted);
+}
+.counts .count-total { color: var(--accent); border-color: var(--accent); }
+
+/* ------------------------------------------------ main */
+
+main { flex: 1; padding: 16px 24px 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
+
+.status { min-height: 1.5em; margin: 0 0 12px; color: var(--accent); overflow-wrap: anywhere; }
+.status.error, .output.error { color: var(--danger); }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.card:hover { border-color: #3a4537; }
+.card > button { align-self: flex-start; margin-top: auto; }
+
+.card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+.badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.age { color: var(--muted); font-size: 12px; }
+
+.card-title, .grave-title { font-size: 15px; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+.eulogy { margin: 0; font-style: italic; color: #c3cab9; overflow-wrap: anywhere; }
+.eulogy::before { content: "\201C"; color: var(--accent); }
+.eulogy::after { content: "\201D"; color: var(--accent); }
+
+.reason { margin: auto 0 0; font-size: 12px; overflow-wrap: anywhere; }
+
+details summary { cursor: pointer; color: var(--muted); }
+.facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+/* ------------------------------------------------ graveyard */
+
+.graveyard { margin-top: 36px; border-top: 1px dashed var(--panel-edge); padding-top: 20px; }
+.graveyard h2 { font-size: 17px; margin-bottom: 12px; }
+.graveyard h2::before { content: "\271D  "; color: var(--muted); }
+
+.graves {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.grave {
+  background: var(--panel);
+  border: 1px solid var(--panel-edge);
+  border-radius: 6px 6px 2px 2px;
+  padding: 12px;
+  min-width: 0;
+}
+.grave p { margin: 4px 0; font-size: 12px; overflow-wrap: anywhere; }
+.grave button { margin-top: 6px; }
+.grave-head { display: flex; gap: 8px; align-items: baseline; }
+.risen { color: var(--accent); }
+
+/* ------------------------------------------------ dialog */
+
+dialog {
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 20px;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+}
+dialog::backdrop { background: rgba(0, 0, 0, 0.7); }
+dialog h2 { font-size: 16px; margin-bottom: 8px; overflow-wrap: anywhere; }
+dialog p { margin: 6px 0; }
+
+.command, .output {
+  background: var(--bg);
+  border: 1px solid var(--panel-edge);
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 13px/1.4 var(--font);
+}
+.command { color: var(--accent); }
+
+.warning { color: var(--danger); font-weight: 600; }
+
+.check { display: flex; gap: 8px; align-items: center; margin: 12px 0; cursor: pointer; }
+.check input { accent-color: var(--accent); width: 16px; height: 16px; }
+
+.confirm-label { display: block; margin-bottom: 4px; overflow-wrap: anywhere; }
+.confirm-label code { color: var(--accent); }
+
+#bury-name {
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--panel-edge);
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+/* ------------------------------------------------ footer */
+
+.foot {
+  padding: 12px 24px;
+  border-top: 1px solid var(--panel-edge);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .top { padding: 16px 16px 4px; }
+  main { padding: 12px 16px 24px; }
+  h1 { font-size: 18px; }
+  .grid, .graves { grid-template-columns: 1fr; }
+  .foot { padding: 12px 16px; }
+}

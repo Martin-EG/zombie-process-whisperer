@@ -64,3 +64,14 @@ columns, eulogies wrap. At 80 columns a 15-char branch name can fold mid-word.
 existing names, keeps history via `resurrected_at`). `zombie bury [--apply]` and `zombie resurrect`
 with exit codes 0/2/1. 277 tests pass, ruff clean. Throwaway-repo round trip: bury and resurrect
 restored `feature/login` at the same SHA recorded in graveyard.json.
+
+## Step 7 (2026-10-27)
+
+`web/app.py`: Host, Origin, then token/cookie checks in one middleware, security headers on every
+response, routes that call `run_all`, `eulogize_all`, `plan_bury`, `bury`, `resurrect` only. Static page
+with cards, bury dialog (Dry run on by default, Confirm disabled until the exact name), Graveyard panel.
+`zombie ui [--port] [--no-model] [--no-open]`. 306 tests pass, ruff clean. Live: curls gave 401/400/403,
+HEAD token exchange 303 with HttpOnly SameSite=strict cookie then 401, lsof shows 127.0.0.1:8765, no
+console errors, click-through bury/resurrect restored `feature/login` at the same SHA, and a commit
+subject `<img src=x onerror=alert(1)>` rendered as text after a rescan. Starlette warns that `httpx` in
+TestClient is deprecated in favour of `httpx2`; not switched, since dependencies are fixed.

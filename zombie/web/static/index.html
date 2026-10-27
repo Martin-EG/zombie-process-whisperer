@@ -2,11 +2,50 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Zombie Process Whisperer</title>
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <p>Not implemented yet (Step 7).</p>
+  <header class="top">
+    <div class="title-row">
+      <h1>Zombie Process Whisperer</h1>
+      <button id="rescan" type="button">Rescan</button>
+    </div>
+    <p class="root">Haunting <span id="root">…</span></p>
+    <ul id="counts" class="counts"></ul>
+  </header>
+
+  <main>
+    <p id="status" class="status" role="status"></p>
+    <section aria-label="Zombies" id="zombies" class="grid"></section>
+
+    <section class="graveyard" aria-labelledby="graveyard-title">
+      <h2 id="graveyard-title">Graveyard</h2>
+      <p id="graveyard-empty" class="muted" hidden>The graveyard is empty. Nothing has been buried yet.</p>
+      <ul id="graveyard" class="graves"></ul>
+    </section>
+  </main>
+
+  <footer class="foot">Running locally. Model: <span id="model">…</span>. Nothing leaves this machine.</footer>
+
+  <dialog id="bury-dialog" aria-labelledby="bury-title">
+    <h2 id="bury-title">Bury</h2>
+    <p class="muted">This command will run:</p>
+    <pre id="bury-command" class="command"></pre>
+    <p id="bury-undo" class="muted"></p>
+    <p id="bury-warning" class="warning" hidden>This cannot be undone.</p>
+    <label class="check"><input id="bury-dry-run" type="checkbox" checked> Dry run</label>
+    <label class="confirm-label" for="bury-name">Type <code id="bury-name-hint"></code> exactly:</label>
+    <input id="bury-name" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+           placeholder="type the name to confirm">
+    <pre id="bury-output" class="output" hidden></pre>
+    <div class="actions">
+      <button id="bury-cancel" type="button" class="secondary">Close</button>
+      <button id="bury-confirm" type="button" class="danger" disabled>Confirm</button>
+    </div>
+  </dialog>
+
   <script src="/static/app.js"></script>
 </body>
 </html>

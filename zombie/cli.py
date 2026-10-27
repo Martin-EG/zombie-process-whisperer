@@ -2,20 +2,33 @@
 
 import argparse
 import logging
+import secrets
 import shlex
+import socket
+import webbrowser
 from pathlib import Path
+
+import uvicorn
 
 from zombie import bury as bury_mod
 from zombie import proc, state
 from zombie.eulogy import eulogize_all
 from zombie.report import print_graveyard, print_report, tilde, visible, write_graveyard_md
 from zombie.scan import run_all
+from zombie.web import app as web_app
 
 
 def non_negative_int(value: str) -> int:
     number = int(value)
     if number < 0:
         raise argparse.ArgumentTypeError(f"{value} is negative; pass 0 or more days.")
+    return number
+
+
+def port_number(value: str) -> int:
+    number = int(value)
+    if not 1 <= number <= 65535:
+        raise argparse.ArgumentTypeError(f"{value} is not a port; pass 1-65535.")
     return number
 
 
@@ -53,7 +66,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     ui = sub.add_parser("ui", help="local web UI on 127.0.0.1")
     ui.add_argument("root", nargs="?", default=".", help="folder to search for git repos")
-    ui.add_argument("--port", type=int, default=8765, help="port on 127.0.0.1 (default 8765)")
+    ui.add_argument(
+        "--port", type=port_number, default=8765, help="port on 127.0.0.1 (default 8765)"
+    )
+    ui.add_argument(
+        "--no-model", action="store_true", help="template eulogies only; do not call Ollama"
+    )
+    ui.add_argument("--no-open", action="store_true", help="print the URL; do not open a browser")
 
     return parser
 
@@ -149,6 +168,61 @@ def _resurrect(zombie_id: str) -> int:
     return 0
 
 
+def bind_socket(port: int) -> socket.socket:
+    """Listen on 127.0.0.1:<port> before the scan, so a busy port fails fast. Raises OSError."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.bind((web_app.HOST, port))
+        sock.listen(128)
+    except OSError:
+        sock.close()
+        raise
+    return sock
+
+
+def ui_config(app: object, port: int) -> uvicorn.Config:
+    """uvicorn settings for `zombie ui`: 127.0.0.1 only, no proxy headers, quiet logs (S8)."""
+    return uvicorn.Config(
+        app,
+        host=web_app.HOST,
+        port=port,
+        proxy_headers=False,
+        server_header=False,
+        access_log=False,
+        log_level="warning",
+    )
+
+
+def _ui(root: str, port: int, use_model: bool = True, open_browser: bool = True) -> int:
+    path = Path(root).expanduser()
+    if not path.is_dir():
+        print(f"zombie ui: {root} is not a folder. Pass a folder that contains git repos.")
+        return 2
+    try:
+        sock = bind_socket(port)
+    except OSError as exc:
+        print(
+            f"zombie ui: port {port} on {web_app.HOST} is busy ({exc.strerror})."
+            " Stop the other program or pass --port N."
+        )
+        return 2
+    path = path.resolve()
+    zombies = eulogize_all(run_all(path), use_model=use_model)
+    state.save_last_scan(zombies)
+    token = secrets.token_urlsafe(32)
+    app = web_app.create_app(path, port, token=token, use_model=use_model)
+    server = uvicorn.Server(ui_config(app, port))
+    url = f"http://{web_app.HOST}:{port}/?token={token}"
+    print(f"{len(zombies)} zombies found in {tilde(str(path))}.")
+    print(f"Zombie Process Whisperer is running at {url}")
+    print("The link works once. Press Ctrl-C to stop.", flush=True)
+    if open_browser:
+        webbrowser.open(url)  # the socket is already listening, so the request just queues
+    server.run(sockets=[sock])
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.WARNING)
@@ -162,8 +236,9 @@ def main(argv: list[str] | None = None) -> int:
         return _bury(args.id, apply=args.apply)
     if args.command == "resurrect":
         return _resurrect(args.id)
-    print(f"zombie {args.command}: not implemented yet")
-    return 0
+    return _ui(
+        args.root, args.port, use_model=not args.no_model, open_browser=not args.no_open
+    )
 
 
 if __name__ == "__main__":
