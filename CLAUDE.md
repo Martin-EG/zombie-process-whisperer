@@ -126,7 +126,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 - [x] Step 1: scaffold, models, proc, state
 - [x] Step 2: git scanner
 - [x] Step 3: docker, cron, process scanners
-- [ ] Step 4: eulogy writer
+- [x] Step 4: eulogy writer
 - [ ] Step 5: CLI scan report and graveyard.md
 - [ ] Step 6: bury and resurrect
 - [ ] Step 7: local web UI
@@ -151,3 +151,10 @@ Record non-obvious choices here as one line each, with the step number.
 - Step 3: cron flags an entry by the first absolute or `~/` token only (`/usr/bin/env python3 /gone.py` is not flagged); `shlex` split, falling back to whitespace on bad quoting.
 - Step 3: `psutil.ZombieProcess` from `name()`/`create_time()`/`ppid()` falls back to "unknown"/None instead of skipping, since real zombies often refuse those calls.
 - Step 3: `run_all` sorts kinds in `ZombieKind` order (git_branch, docker_container, docker_volume, cron_job, process), unknown ages last within a kind.
+- Step 4: `eulogies.json` keys are `"<zombie id>:<sha256 of facts>"`; a new eulogy for an id replaces its old key. Only model text is cached, never templates, so real eulogies appear once Ollama is back.
+- Step 4: the cache key drops the trailing relative time from a container's `status` ("Exited (0) 6 minutes ago"), or every scan would miss. `age_days` is not in the key.
+- Step 4: `ollama.Client` is built with `trust_env=False` and `follow_redirects=False` so proxy env vars or a redirect cannot send the prompt off 127.0.0.1 (S8).
+- Step 4: after the first model failure in `eulogize_all` (Ollama down, timeout, missing model) the rest of the run uses templates with one warning; an empty reply falls back for that item only.
+- Step 4: the user message is `Kind: <kind>` then `DATA:` and one JSON line; `clean()` also drops control characters and a leading "Here's a ... eulogy:" preamble that gemma3:1b sometimes adds.
+- Step 4: conftest's autouse `no_real_ollama` points `eulogy.OLLAMA_HOST` at 127.0.0.1:9 so no test reaches a real local Ollama.
+- Step 4: `zombie scan` saves `last_scan.json` again after eulogies are filled, so the saved scan carries them.

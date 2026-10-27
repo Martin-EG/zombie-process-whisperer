@@ -228,9 +228,10 @@ def test_cli_scan_prints_git_zombies(
 ) -> None:
     for name in ("scan_docker", "scan_cron", "scan_procs"):
         monkeypatch.setattr(scan, name, lambda: [])
-    assert cli.main(["scan", str(main_repo.parent)]) == 0
+    assert cli.main(["scan", str(main_repo.parent), "--no-model"]) == 0
     lines = capsys.readouterr().out.splitlines()
-    assert len(lines) == 3
+    assert len(lines) == 5  # two zombies, each with a template eulogy line, then the summary
+    assert sum(ln.startswith("    Here lies ") for ln in lines) == 2
     assert lines[-1].startswith("2 zombies: git_branch=2,")
     assert any("merged-feature" in ln and "buryable=yes" in ln for ln in lines)
     assert any("stale-unmerged" in ln and "buryable=no" in ln for ln in lines)

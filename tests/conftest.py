@@ -1,4 +1,4 @@
-"""Autouse fixtures: block non-local network connections and isolate ZOMBIE_HOME."""
+"""Autouse fixtures: block non-local network connections, real Ollama, and isolate ZOMBIE_HOME."""
 
 import socket
 from pathlib import Path
@@ -40,3 +40,9 @@ def zombie_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     home = tmp_path / "zombie_home"
     monkeypatch.setenv("ZOMBIE_HOME", str(home))
     return home
+
+
+@pytest.fixture(autouse=True)
+def no_real_ollama(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Port 9 (discard) has no listener, so a real client fails fast and falls back to templates.
+    monkeypatch.setattr("zombie.eulogy.OLLAMA_HOST", "http://127.0.0.1:9")

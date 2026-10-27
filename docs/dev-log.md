@@ -5,7 +5,7 @@
 - [x] Step 1: scaffold, models, proc, state (2026-10-27)
 - [x] Step 2: git scanner (2026-10-27)
 - [x] Step 3: docker, cron, process scanners (2026-10-27)
-- [ ] Step 4: eulogy writer
+- [x] Step 4: eulogy writer (2026-10-27)
 - [ ] Step 5: CLI scan report and graveyard.md
 - [ ] Step 6: bury and resurrect
 - [ ] Step 7: local web UI
@@ -40,3 +40,11 @@ so not recorded live). 151 tests pass, ruff clean. Local scan with Docker down: 
 Scanner checked against a live daemon (Docker 29.8.2): one real exited container found with full id,
 image, status and age. Fixture rows now carry the `HealthStatus` and nested `Platform` fields real
 `docker ps` emits. 151 tests pass, ruff clean.
+
+## Step 4 (2026-10-27)
+
+`eulogy.py`: `eulogy`, `template_eulogy`, `eulogize_all` (cache in `eulogies.json`, rich progress on a
+terminal), `clean`/`truncate` post-processing. `zombie scan --no-model` uses templates only. 205 tests
+pass, ruff clean. Live with gemma3:1b: cold scan 1.83 s, warm 0.36 s, longest eulogy 28 words. The 1b
+model invents numbers now and then ("Five years of existence" for a 5-day-old container) despite the
+prompt; text is display-only (S4), so this is a quality issue, not a safety one.
