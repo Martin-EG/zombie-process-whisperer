@@ -124,7 +124,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 ## Build status
 
 - [x] Step 1: scaffold, models, proc, state
-- [ ] Step 2: git scanner
+- [x] Step 2: git scanner
 - [ ] Step 3: docker, cron, process scanners
 - [ ] Step 4: eulogy writer
 - [ ] Step 5: CLI scan report and graveyard.md
@@ -142,3 +142,7 @@ Record non-obvious choices here as one line each, with the step number.
 - Step 1: regexes use `re.fullmatch`, so a trailing newline never passes container-id or SHA checks.
 - Step 1: `run_read` accepts only read-only shapes (`validate_read`): `crontab -l`; `git --version` or `git -C <abs repo>` + for-each-ref/rev-parse/merge-base/log/rev-list/show-ref/check-ref-format with no `-c`, `--git-dir`, `--output`, `--ext-diff`, `--textconv`; docker ps/inspect/info/version/container ls|inspect/volume ls|inspect with no global flags. `git branch` and `symbolic-ref` are excluded (positional forms write); use `for-each-ref --merged`.
 - Step 1: `last_scan.json` and `graveyard.json` store plain JSON lists of model dumps; `eulogies.json` is a `{zombie_id: text}` map.
+- Step 2: the step prompt's `git symbolic-ref` and `git branch --merged` are replaced by `for-each-ref --format=%(symref) refs/remotes/origin/HEAD` and `for-each-ref --merged`, per the step 1 read allowlist.
+- Step 2: a stale branch is one whose last committer date is at least `stale_days` old; current branch is detected with `%(HEAD)`.
+- Step 2: in a repo with no default branch, `facts["merged"]` is `"unknown"` (not `"no"`), since merge status cannot be checked.
+- Step 2: `proc.CommandTimeout` re-exports `subprocess.TimeoutExpired` so scanners can catch timeouts without importing subprocess.

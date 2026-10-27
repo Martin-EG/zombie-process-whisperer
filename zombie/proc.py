@@ -17,6 +17,9 @@ ALLOWED_EXECUTABLES = frozenset({"git", "docker", "crontab"})
 _CONTAINER_ID_RE = re.compile(r"[0-9a-f]{12,64}")
 _SHA_RE = re.compile(r"[0-9a-f]{40}")
 
+# Re-exported so callers can catch timeouts without importing subprocess (invariant S3).
+CommandTimeout = subprocess.TimeoutExpired
+
 
 class CommandRefused(ValueError):
     """A command was refused before anything ran."""
