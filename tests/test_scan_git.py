@@ -228,13 +228,13 @@ def test_cli_scan_prints_git_zombies(
 ) -> None:
     for name in ("scan_docker", "scan_cron", "scan_procs"):
         monkeypatch.setattr(scan, name, lambda: [])
-    assert cli.main(["scan", str(main_repo.parent), "--no-model"]) == 0
-    lines = capsys.readouterr().out.splitlines()
-    assert len(lines) == 5  # two zombies, each with a template eulogy line, then the summary
-    assert sum(ln.startswith("    Here lies ") for ln in lines) == 2
-    assert lines[-1].startswith("2 zombies: git_branch=2,")
-    assert any("merged-feature" in ln and "buryable=yes" in ln for ln in lines)
-    assert any("stale-unmerged" in ln and "buryable=no" in ln for ln in lines)
+    out = main_repo.parent / "graveyard.md"
+    assert cli.main(["scan", str(main_repo.parent), "--no-model", "--out", str(out)]) == 0
+    text = capsys.readouterr().out
+    assert "merged-feature" in text and "stale-unmerged" in text
+    assert text.count("Here lies") >= 2
+    assert text.splitlines()[-1].startswith("2 zombies found, 1 buryable. Report saved to ")
+    assert "merged-feature" in out.read_text()
 
 
 def test_cli_scan_missing_folder(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:

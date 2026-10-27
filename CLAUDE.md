@@ -127,7 +127,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 - [x] Step 2: git scanner
 - [x] Step 3: docker, cron, process scanners
 - [x] Step 4: eulogy writer
-- [ ] Step 5: CLI scan report and graveyard.md
+- [x] Step 5: CLI scan report and graveyard.md
 - [ ] Step 6: bury and resurrect
 - [ ] Step 7: local web UI
 - [ ] Step 8: safety audit
@@ -158,3 +158,8 @@ Record non-obvious choices here as one line each, with the step number.
 - Step 4: the user message is `Kind: <kind>` then `DATA:` and one JSON line; `clean()` also drops control characters and a leading "Here's a ... eulogy:" preamble that gemma3:1b sometimes adds.
 - Step 4: conftest's autouse `no_real_ollama` points `eulogy.OLLAMA_HOST` at 127.0.0.1:9 so no test reaches a real local Ollama.
 - Step 4: `zombie scan` saves `last_scan.json` again after eulogies are filled, so the saved scan carries them.
+- Step 5: `graveyard.md` (default `./graveyard.md`, `--out` to move it) is the one file the scan writes outside the state dir, as the architecture diagram shows; it is gitignored in this repo.
+- Step 5: terminal cells show newlines and other control characters as visible escapes (`\n`, `\x1b`) before `rich.markup.escape`, so a name cannot split a row or send terminal escape codes.
+- Step 5: markdown cells replace newlines with spaces and escape `\`, `|`, `<`, `>`; home becomes `~` only as a whole path prefix (`/Users/ghostly` is left alone when home is `/Users/ghost`).
+- Step 5: the KIND column uses short labels (branch, container, volume, cron, process) and the table is auto-sized, not expanded, so it fits 80 columns; graveyard.md uses long labels.
+- Step 5: `run_all` takes `stale_days` (default 90) for `--stale-days`; `zombie graveyard` shows `buried_at` to the minute.

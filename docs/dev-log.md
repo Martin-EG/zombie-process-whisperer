@@ -48,3 +48,11 @@ terminal), `clean`/`truncate` post-processing. `zombie scan --no-model` uses tem
 pass, ruff clean. Live with gemma3:1b: cold scan 1.83 s, warm 0.36 s, longest eulogy 28 words. The 1b
 model invents numbers now and then ("Five years of existence" for a 5-day-old container) despite the
 prompt; text is display-only (S4), so this is a quality issue, not a safety one.
+
+## Step 5 (2026-10-27)
+
+`report.py`: `print_report` (rich table grouped by kind, all metadata escaped), `write_graveyard_md`
+(count per kind, one table per kind, home as `~`), `print_graveyard`. `zombie scan` gains `--out` and
+`--stale-days` and ends with a one-line summary; `zombie graveyard` lists graveyard.json. 223 tests pass,
+ruff clean. Live scan of ~/Developer with gemma3:1b: 5 zombies, 3 buryable, 4.2 s cold; fits 100 and 80
+columns, eulogies wrap. At 80 columns a 15-char branch name can fold mid-word.

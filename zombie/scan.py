@@ -22,14 +22,14 @@ def sort_key(z: Zombie) -> tuple[int, bool, int]:
     return KIND_ORDER[z.kind], z.age_days is None, -(z.age_days or 0)
 
 
-def run_all(root: Path) -> list[Zombie]:
+def run_all(root: Path, stale_days: int = 90) -> list[Zombie]:
     """Run every scanner, sort, save last_scan.json, and return the list.
 
     A scanner that raises is logged and skipped so the others still report.
     """
     # Looked up at call time so tests can monkeypatch the module-level names.
     scanners: list[tuple[str, Callable[[], list[Zombie]]]] = [
-        ("git", lambda: scan_git(Path(root))),
+        ("git", lambda: scan_git(Path(root), stale_days=stale_days)),
         ("docker", lambda: scan_docker()),
         ("cron", lambda: scan_cron()),
         ("processes", lambda: scan_procs()),
