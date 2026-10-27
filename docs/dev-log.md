@@ -4,7 +4,7 @@
 
 - [x] Step 1: scaffold, models, proc, state (2026-10-27)
 - [x] Step 2: git scanner (2026-10-27)
-- [ ] Step 3: docker, cron, process scanners
+- [x] Step 3: docker, cron, process scanners (2026-10-27)
 - [ ] Step 4: eulogy writer
 - [ ] Step 5: CLI scan report and graveyard.md
 - [ ] Step 6: bury and resurrect
@@ -27,3 +27,10 @@ Closes the gap where `run_read(["crontab", "-r"])` or `git branch -D` would have
 `scan_git.py`: `find_repos`, `default_branch`, `scan_git`. One `for-each-ref` per repo with NUL-separated
 fields, merged set from `for-each-ref --merged <default>`, per-repo errors logged and skipped. `zombie scan`
 temporarily prints one line per git zombie. 123 tests pass, ruff clean. Scan of 6 repos: 0.26 s.
+
+## Step 3 (2026-10-27)
+
+`scan_docker.py`, `scan_cron.py`, `scan_procs.py` with injectable runners; `scan.run_all` runs all four,
+isolates failures, sorts, saves `last_scan.json`; `zombie scan` uses it and prints counts per kind.
+Docker fixtures are hand-written in `docker ps/volume ls --format '{{json .}}'` shape (daemon was down,
+so not recorded live). 151 tests pass, ruff clean. Local scan with Docker down: one warning, 0.39 s.

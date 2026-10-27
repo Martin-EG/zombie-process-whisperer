@@ -2,9 +2,10 @@
 
 import argparse
 import logging
+from collections import Counter
 from pathlib import Path
 
-from zombie.scan_git import scan_git
+from zombie.scan import KIND_ORDER, run_all
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,13 +35,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _scan(root: str) -> int:
-    # Temporary git-only output; step 5 replaces it with the real report.
+    # Temporary plain output; step 5 replaces it with the real report.
     path = Path(root).expanduser()
     if not path.is_dir():
         print(f"zombie scan: {root} is not a folder. Pass a folder that contains git repos.")
         return 2
-    for z in scan_git(path):
-        print(f"{z.id}  {z.title}  {z.age_days}d  buryable={'yes' if z.buryable else 'no'}")
+    zombies = run_all(path)
+    for z in zombies:
+        age = "?" if z.age_days is None else f"{z.age_days}d"
+        print(f"{z.id}  {z.kind}  {z.title}  {age}  buryable={'yes' if z.buryable else 'no'}")
+    counts = Counter(z.kind for z in zombies)
+    summary = ", ".join(f"{kind}={counts.get(kind, 0)}" for kind in KIND_ORDER)
+    print(f"{len(zombies)} zombies: {summary}")
     return 0
 
 

@@ -125,7 +125,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 
 - [x] Step 1: scaffold, models, proc, state
 - [x] Step 2: git scanner
-- [ ] Step 3: docker, cron, process scanners
+- [x] Step 3: docker, cron, process scanners
 - [ ] Step 4: eulogy writer
 - [ ] Step 5: CLI scan report and graveyard.md
 - [ ] Step 6: bury and resurrect
@@ -146,3 +146,8 @@ Record non-obvious choices here as one line each, with the step number.
 - Step 2: a stale branch is one whose last committer date is at least `stale_days` old; current branch is detected with `%(HEAD)`.
 - Step 2: in a repo with no default branch, `facts["merged"]` is `"unknown"` (not `"no"`), since merge status cannot be checked.
 - Step 2: `proc.CommandTimeout` re-exports `subprocess.TimeoutExpired` so scanners can catch timeouts without importing subprocess.
+- Step 3: `docker ps` uses `--no-trunc` for full container ids; rows whose id fails `is_container_id` are skipped. If `docker ps` fails, the volume call is skipped too (one warning).
+- Step 3: docker container `age_days` comes from `CreatedAt`; volumes and cron jobs have `age_days=None` (no reliable date without extra calls).
+- Step 3: cron flags an entry by the first absolute or `~/` token only (`/usr/bin/env python3 /gone.py` is not flagged); `shlex` split, falling back to whitespace on bad quoting.
+- Step 3: `psutil.ZombieProcess` from `name()`/`create_time()`/`ppid()` falls back to "unknown"/None instead of skipping, since real zombies often refuse those calls.
+- Step 3: `run_all` sorts kinds in `ZombieKind` order (git_branch, docker_container, docker_volume, cron_job, process), unknown ages last within a kind.

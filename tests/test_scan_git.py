@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from zombie import cli, proc, scan_git
+from zombie import cli, proc, scan, scan_git
 from zombie.models import make_id
 from zombie.scan_git import default_branch, find_repos
 
@@ -223,10 +223,15 @@ def test_stale_days_threshold(main_repo: Path) -> None:
     assert titles == {"merged-feature"}
 
 
-def test_cli_scan_prints_git_zombies(main_repo: Path, capsys: pytest.CaptureFixture) -> None:
+def test_cli_scan_prints_git_zombies(
+    main_repo: Path, capsys: pytest.CaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("scan_docker", "scan_cron", "scan_procs"):
+        monkeypatch.setattr(scan, name, lambda: [])
     assert cli.main(["scan", str(main_repo.parent)]) == 0
     lines = capsys.readouterr().out.splitlines()
-    assert len(lines) == 2
+    assert len(lines) == 3
+    assert lines[-1].startswith("2 zombies: git_branch=2,")
     assert any("merged-feature" in ln and "buryable=yes" in ln for ln in lines)
     assert any("stale-unmerged" in ln and "buryable=no" in ln for ln in lines)
 

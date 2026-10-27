@@ -1,0 +1,13 @@
+# m h  dom mon dow   command
+SHELL=/bin/bash
+PATH = /usr/local/bin:/usr/bin:/bin
+MAILTO=""
+
+*/15 * * * * /opt/ghost/backup.sh --quiet >> /tmp/backup.log 2>&1
+0 3 * * 1 /usr/bin/env true
+@reboot ~/bin/start-tunnel.sh
+@daily /usr/bin/env python3 "/srv/old reports/nightly.py"
+   # indented comment
+30 2 * * * echo hi
+0 0 1 1 * cd /var/empty && ./run.sh
+@hourly
