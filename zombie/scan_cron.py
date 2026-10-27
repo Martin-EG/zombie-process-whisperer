@@ -15,7 +15,7 @@ TITLE_MAX = 80
 
 _ENV_LINE_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\s*=")
 
-Runner = Callable[..., proc.subprocess.CompletedProcess]
+Runner = Callable[..., proc.CompletedProcess]
 
 
 def parse_line(line: str) -> tuple[str, str] | None:

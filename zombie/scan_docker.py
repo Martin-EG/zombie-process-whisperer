@@ -17,7 +17,7 @@ PS_ARGS = [
 ]
 VOLUME_ARGS = ["docker", "volume", "ls", "--filter", "dangling=true", "--format", "{{json .}}"]
 
-Runner = Callable[..., proc.subprocess.CompletedProcess]
+Runner = Callable[..., proc.CompletedProcess]
 
 
 class DockerUnavailable(RuntimeError):

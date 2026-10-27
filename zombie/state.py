@@ -1,8 +1,11 @@
 """State directory and atomic JSON storage for last_scan.json, graveyard.json, eulogies.json."""
 
+import fcntl
 import json
 import os
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +15,7 @@ DEFAULT_HOME = Path("~/.local/state/zombie-whisperer")
 
 LAST_SCAN = "last_scan.json"
 GRAVEYARD = "graveyard.json"
+LOCK = ".lock"
 EULOGIES = "eulogies.json"
 
 
@@ -61,6 +65,23 @@ def _fsync_dir(folder: Path) -> None:
         pass  # some filesystems refuse fsync on a directory; the file itself is already synced
     finally:
         os.close(fd)
+
+
+@contextmanager
+def lock() -> Iterator[None]:
+    """Exclusive lock on the state folder, shared by every process (CLI and web UI).
+
+    bury and resurrect hold it so one process's graveyard read-modify-write cannot drop
+    another's undo entry (S7).
+    """
+    home = zombie_home()
+    home.mkdir(parents=True, exist_ok=True)
+    with open(home / LOCK, "a") as f:
+        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
 
 def load_last_scan() -> list[Zombie]:

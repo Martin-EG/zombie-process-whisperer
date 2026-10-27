@@ -98,6 +98,19 @@ REFUSED = [
     pytest.param(["git", "-C", "REPO", "branch", "x", "A" * 40], id="sha-uppercase"),
     pytest.param([], id="empty"),
     pytest.param(["git", "-C", "REPO", "branch", "-d", "x\x00y"], id="nul-byte"),
+    # Step 8 audit probes.
+    pytest.param(["docker", "rm", "--force", CID], id="docker-rm-long-force"),
+    pytest.param(["docker", "rm", "$(id)0123456789ab"], id="cid-command-substitution"),
+    pytest.param(["docker", "rm", "`id`0123456789ab"], id="cid-backticks"),
+    pytest.param(["docker", "rm", "-" + CID], id="cid-leading-dash"),
+    pytest.param(["git", "-C", "REPO", "branch", "-d", ".."], id="branch-dotdot"),
+    pytest.param(["git", "-C", "REPO", "branch", "-d", "x\n"], id="branch-trailing-newline"),
+    pytest.param(["git", "-C", "REPO", "branch", "-d", "x@{u}"], id="branch-at-upstream"),
+    pytest.param(["git", "-C", "REPO", "branch", "-d", "HEAD"], id="branch-HEAD"),
+    pytest.param(["git", "-C", "REPO", "branch", "-d", "-"], id="branch-dash-only"),
+    pytest.param(["git", "-C", "REPO", "branch", "-d", "x;rm -rf ~"], id="branch-shell-chars"),
+    pytest.param(["git", "-C", "REPO", "branch", "-D", SHA], id="branch-D-sha-shape"),
+    pytest.param(["git", "-C", "-cfoo=bar", "branch", "-d", "x"], id="repo-is-option"),
 ]
 
 

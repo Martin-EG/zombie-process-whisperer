@@ -19,6 +19,7 @@ _SHA_RE = re.compile(r"[0-9a-f]{40}")
 
 # Re-exported so callers can catch timeouts without importing subprocess (invariant S3).
 CommandTimeout = subprocess.TimeoutExpired
+CompletedProcess = subprocess.CompletedProcess
 
 
 class CommandRefused(ValueError):

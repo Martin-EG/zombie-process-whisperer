@@ -130,7 +130,7 @@ Model: `ZOMBIE_MODEL` env var, default `gemma3:1b`. Any small instruct model in 
 - [x] Step 5: CLI scan report and graveyard.md
 - [x] Step 6: bury and resurrect
 - [x] Step 7: local web UI
-- [ ] Step 8: safety audit
+- [x] Step 8: safety audit
 - [ ] Step 9: demo graveyard and recording
 
 ## Decisions
@@ -177,3 +177,10 @@ Record non-obvious choices here as one line each, with the step number.
 - Step 7: `GET /api/zombies` adds `command` (shlex-joined `plan_bury` args) and `reversible` per buryable item so the dialog shows the exact command before any POST; a `plan_bury` refusal turns the item report-only with its reason. POST bodies are `extra="forbid", strict=True` (`"apply": "yes"` is 422).
 - Step 7: bury refusals (any `BuryRefused`) are 409 with `{"detail": msg}`; resurrect refusals and `CommandRefused` are 409 too; `MutationFailed` is 500. Rescan, bury and resurrect share one lock.
 - Step 7: `zombie ui` prints the URL with `flush=True`; without it a redirected stdout held the URL until exit.
+- Step 8: S3 was weak: bury, scan_git, scan_cron, scan_docker reached `proc.subprocess` for type hints, so `proc.subprocess.run(...)` would bypass both allowlists unnoticed. proc now exports `CompletedProcess`; `test_s3_no_backdoor_to_subprocess` refuses `.subprocess`, `._run`, os.system/popen/exec*/spawn*/fork and pty.spawn outside proc.py.
+- Step 8: S7 was weak across processes: the CLI and web UI could interleave graveyard read-modify-writes and drop a flushed undo entry; resurrect also saved a snapshot taken before git ran. bury (apply) and resurrect now hold `state.lock()` (fcntl.flock on `$ZOMBIE_HOME/.lock`), and resurrect reloads graveyard.json before saving.
+- Step 8: eulogy.py's docstring says "command runner" instead of "subprocess" so the S3 grep shows only proc.py.
+- Step 8: S2 probes (leading dashes, spaces, `..`, `@{`, `@{u}`, HEAD, trailing newline, shell characters, `$(id)` container ids, `--force`) are all refused and are now REFUSED cases in test_proc. Unicode names and a bare `@` are accepted: git treats them as literal branch names and no shell is involved.
+- Step 8: abbreviated git options (`--outp=` for `--output`) were checked against git 2.54 `log`; git refuses them, so the read prefix list holds.
+- Step 8: known residual gap, unchanged: between re-verify and `git branch -d` a branch can move to a newer commit; `-d` still requires it merged into HEAD or upstream, so no commit is lost, but the undo entry records the older SHA.
+- Step 8: S8 network-off check runs pytest and `zombie scan` under `sandbox-exec` with outbound denied except localhost; the step 9 demo script is still a stub, so a hand-built scratch repo stood in for the demo folder.

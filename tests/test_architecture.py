@@ -61,7 +61,34 @@ def shell_not_false_calls(tree: ast.AST) -> list[int]:
     return lines
 
 
+_OS_SPAWNERS = ("system", "popen", "exec", "spawn", "posix_spawn", "fork")
+
+
+def subprocess_backdoors(tree: ast.AST) -> list[int]:
+    """Lines that reach a process runner without importing subprocess: `proc.subprocess`,
+    `proc._run`, os.system/popen/exec*/spawn*/fork, or pty.spawn."""
+    lines = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Attribute):
+            continue
+        if node.attr in {"subprocess", "_run"}:
+            lines.append(node.lineno)
+        elif isinstance(node.value, ast.Name) and node.value.id in {"os", "pty"}:
+            if node.attr.startswith(_OS_SPAWNERS) or (node.value.id, node.attr) == ("pty", "spawn"):
+                lines.append(node.lineno)
+    return lines
+
+
 def test_detectors_catch_bad_code() -> None:
+    assert subprocess_backdoors(ast.parse("proc.subprocess.run(['rm', '-rf', '/'])")) == [1]
+    assert subprocess_backdoors(ast.parse("x: proc.subprocess.CompletedProcess")) == [1]
+    assert subprocess_backdoors(ast.parse("proc._run(['sh'], 1)")) == [1]
+    assert subprocess_backdoors(ast.parse("os.system('id')")) == [1]
+    assert subprocess_backdoors(ast.parse("os.popen('id')")) == [1]
+    assert subprocess_backdoors(ast.parse("os.execvp('sh', [])")) == [1]
+    assert subprocess_backdoors(ast.parse("os.posix_spawnp('sh', [], {})")) == [1]
+    assert subprocess_backdoors(ast.parse("pty.spawn('sh')")) == [1]
+    assert subprocess_backdoors(ast.parse("os.path.exists('x')")) == []
     assert imports_subprocess(ast.parse("import subprocess"))
     assert imports_subprocess(ast.parse("from subprocess import run"))
     assert imports_subprocess(ast.parse("import subprocess as sp"))
@@ -79,6 +106,15 @@ def test_detectors_catch_bad_code() -> None:
 def test_s3_only_proc_imports_subprocess() -> None:
     offenders = [rel for rel, tree in _sources(PACKAGE, SCRIPTS) if imports_subprocess(tree)]
     assert offenders == ["zombie/proc.py"]
+
+
+def test_s3_no_backdoor_to_subprocess() -> None:
+    offenders = {
+        rel: lines
+        for rel, tree in _sources(PACKAGE, SCRIPTS)
+        if rel != "zombie/proc.py" and (lines := subprocess_backdoors(tree))
+    }
+    assert offenders == {}
 
 
 def test_s2_only_bury_calls_run_mutation() -> None:

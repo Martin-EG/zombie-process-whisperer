@@ -84,7 +84,7 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-def _stderr(result: proc.subprocess.CompletedProcess) -> str:
+def _stderr(result: proc.CompletedProcess) -> str:
     lines = (result.stderr or result.stdout or "").strip().splitlines()
     return lines[-1] if lines else f"exit code {result.returncode}"
 
@@ -128,7 +128,7 @@ def plan_bury(zombie_id: str) -> BuryPlan:
 # ---------------------------------------------------------------- re-verify (S6)
 
 
-def _git(repo: str, *args: str) -> proc.subprocess.CompletedProcess:
+def _git(repo: str, *args: str) -> proc.CompletedProcess:
     return proc.run_read(["git", "-C", repo, *args])
 
 
@@ -257,11 +257,12 @@ def bury(zombie_id: str, typed_name: str, apply: bool) -> BuryResult:
         )
     if not apply:
         return BuryResult(plan=plan, applied=False)
-    if plan.zombie.kind == "git_branch":
-        entry = _bury_branch(plan)
-    else:
-        entry = _bury_container(plan)
-    _drop_from_last_scan(zombie_id)
+    with state.lock():  # the CLI and the web UI may bury at the same time
+        if plan.zombie.kind == "git_branch":
+            entry = _bury_branch(plan)
+        else:
+            entry = _bury_container(plan)
+        _drop_from_last_scan(zombie_id)
     return BuryResult(plan=plan, applied=True, entry=entry)
 
 
@@ -270,6 +271,11 @@ def bury(zombie_id: str, typed_name: str, apply: bool) -> BuryResult:
 
 def resurrect(zombie_id: str) -> ResurrectResult:
     """Recreate a buried git branch at its recorded SHA and mark the entry resurrected."""
+    with state.lock():
+        return _resurrect(zombie_id)
+
+
+def _resurrect(zombie_id: str) -> ResurrectResult:
     entries = state.load_graveyard()
     matches = [e for e in entries if e.zombie_id == zombie_id]
     if not matches:
@@ -302,5 +308,6 @@ def resurrect(zombie_id: str) -> ResurrectResult:
     if result.returncode != 0:
         raise MutationFailed(f"git refused: {_stderr(result)}")
     done = entry.model_copy(update={"resurrected_at": _now()})
-    state.save_graveyard([done if e == entry else e for e in entries])
+    # Reload: entries is from before git ran, and the file is the undo log of record.
+    state.save_graveyard([done if e == entry else e for e in state.load_graveyard()])
     return ResurrectResult(entry=done, args=args)

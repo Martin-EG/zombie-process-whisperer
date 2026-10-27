@@ -304,6 +304,65 @@ def test_s7_exception_after_branch_deleted_keeps_entry(
     assert [e.sha for e in state.load_graveyard()] == [z.facts["last_commit_sha"]]
 
 
+def other_entry() -> GraveEntry:
+    return GraveEntry(
+        zombie_id="0123456789", kind="git_branch", title="other", location="/elsewhere",
+        sha="b" * 40, buried_at="2026-10-27T00:00:00+00:00", reversible=True,
+    )
+
+
+def test_s7_resurrect_keeps_entries_added_meanwhile(
+    scanned: dict[str, Zombie], repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Another process (CLI vs web UI) buries something while resurrect is running git.
+    z = scanned["merged-feature"]
+    bury.bury(z.id, z.title, apply=True)
+    real = proc.run_mutation
+
+    def concurrent_bury(args: list[str], **kwargs: object) -> object:
+        state.save_graveyard([*state.load_graveyard(), other_entry()])
+        return real(args, **kwargs)
+
+    monkeypatch.setattr(proc, "run_mutation", concurrent_bury)
+    bury.resurrect(z.id)
+    graves = state.load_graveyard()
+    assert [e.title for e in graves] == ["merged-feature", "other"]  # undo entry not lost
+    assert graves[0].resurrected_at is not None
+
+
+def lock_is_held() -> bool:
+    """True if another open file description cannot take the state lock right now."""
+    import fcntl
+
+    path = state.zombie_home() / state.LOCK
+    with open(path, "a") as f:
+        try:
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return True
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        return False
+
+
+def test_s7_bury_and_resurrect_hold_the_state_lock(
+    scanned: dict[str, Zombie], repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # CLI and web UI are separate processes; graveyard read-modify-write must be serialized.
+    z = scanned["merged-feature"]
+    held: list[bool] = []
+    real = proc.run_mutation
+
+    def check(args: list[str], **kwargs: object) -> object:
+        held.append(lock_is_held())
+        return real(args, **kwargs)
+
+    monkeypatch.setattr(proc, "run_mutation", check)
+    bury.bury(z.id, z.title, apply=True)
+    bury.resurrect(z.id)
+    assert held == [True, True]
+    assert not lock_is_held()  # released afterwards
+
+
 # ---------------------------------------------------------------- round trip and resurrect
 
 

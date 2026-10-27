@@ -50,7 +50,7 @@ def find_repos(root: Path, max_depth: int = 4) -> list[Path]:
     return found
 
 
-def _git(repo: Path, *args: str) -> proc.subprocess.CompletedProcess:
+def _git(repo: Path, *args: str) -> proc.CompletedProcess:
     return proc.run_read(["git", "-C", str(repo), *args])
 
 

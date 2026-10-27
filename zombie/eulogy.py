@@ -1,7 +1,7 @@
 """Eulogy text from the local Ollama model, with cache and template fallback.
 
 The returned text is display text only (invariant S4): nothing here or downstream parses it,
-executes it, passes it to a subprocess, or uses it to decide anything. Untrusted metadata goes
+executes it, passes it to a command runner, or uses it to decide anything. Untrusted metadata goes
 into the prompt only inside the JSON DATA block (invariant S5).
 """
 
