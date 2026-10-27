@@ -1,6 +1,6 @@
 """The only module that imports subprocess.
 
-run_read() runs allowlisted executables with no shape check beyond the executable.
+run_read() accepts only read-only command shapes (see validate_read) and refuses everything else.
 run_mutation() accepts exactly three command shapes (invariant S2) and refuses everything else:
 
     git -C <repo> branch -d <branch>
@@ -49,9 +49,79 @@ def _run(args: list[str], timeout: float) -> subprocess.CompletedProcess:
     )
 
 
+class ReadRefused(CommandRefused):
+    """A read did not match one of the allowed read-only shapes."""
+
+
+# Subcommands that only read. `git branch` and `git symbolic-ref` are left out because their
+# positional forms write; scanners use `for-each-ref --merged` and `rev-parse` instead.
+_GIT_READ_SUBCOMMANDS = frozenset(
+    {"for-each-ref", "rev-parse", "merge-base", "log", "rev-list", "show-ref", "check-ref-format"}
+)
+# Options that write files, run external programs, or point git at another repo.
+_GIT_FORBIDDEN_PREFIXES = (
+    "--output",
+    "--ext-diff",
+    "--textconv",
+    "--filters",
+    "--exec",
+    "--upload-pack",
+    "--receive-pack",
+    "--git-dir",
+    "--work-tree",
+)
+_DOCKER_READ_SHAPES = (
+    ("ps",),
+    ("inspect",),
+    ("info",),
+    ("version",),
+    ("container", "ls"),
+    ("container", "inspect"),
+    ("volume", "ls"),
+    ("volume", "inspect"),
+)
+
+
+def validate_read(args: list[str]) -> None:
+    """Raise ReadRefused unless `args` is a read-only command shape.
+
+    git:     `git --version`, or `git -C <abs repo> <read subcommand> ...` with no -c/--git-dir
+             style global options and no option that writes files or runs external programs.
+    docker:  `docker <ps|inspect|info|version|container ls|container inspect|volume ls|
+             volume inspect> ...` with no global options before the subcommand.
+    crontab: exactly `crontab -l`.
+    """
+    _check_args(args, ReadRefused)
+
+    if args[0] == "crontab":
+        if args == ["crontab", "-l"]:
+            return
+        raise ReadRefused("Only `crontab -l` is allowed for reads.")
+
+    if args[0] == "docker":
+        for shape in _DOCKER_READ_SHAPES:
+            if tuple(args[1 : 1 + len(shape)]) == shape:
+                return
+        raise ReadRefused(f"`docker {' '.join(args[1:3])}` is not a read-only docker command.")
+
+    if args[0] == "git":
+        if args == ["git", "--version"]:
+            return
+        if len(args) < 4 or args[1] != "-C" or not _is_repo_arg(args[2]):
+            raise ReadRefused("Git reads must look like `git -C <absolute repo> <subcommand> ...`.")
+        if args[3] not in _GIT_READ_SUBCOMMANDS:
+            raise ReadRefused(f"`git {args[3]}` is not an allowed read-only git subcommand.")
+        for arg in args[4:]:
+            if arg.startswith(_GIT_FORBIDDEN_PREFIXES):
+                raise ReadRefused(f"Git option {arg!r} is not allowed in reads.")
+        return
+
+    raise ReadRefused(f"Executable {args[0]!r} may not be used for reads.")
+
+
 def run_read(args: list[str], timeout: float = 15) -> subprocess.CompletedProcess:
-    """Run a read-only command from the executable allowlist."""
-    _check_args(args, CommandRefused)
+    """Run a command that matches one of the read-only shapes in validate_read()."""
+    validate_read(args)
     return _run(args, timeout)
 
 

@@ -16,3 +16,8 @@
 
 Scaffold, `models.py`, `proc.py` (executable allowlist, S2 mutation validator), `state.py` (atomic JSON),
 argparse CLI stubs, socket guard and temp `ZOMBIE_HOME` fixtures. 58 tests pass, ruff clean.
+
+## Step 1 follow-up (2026-10-27)
+
+`run_read` now refuses anything outside a read-only shape allowlist (`validate_read`, raises `ReadRefused`).
+Closes the gap where `run_read(["crontab", "-r"])` or `git branch -D` would have run. 110 tests pass, ruff clean.

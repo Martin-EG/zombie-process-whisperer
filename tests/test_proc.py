@@ -145,3 +145,84 @@ def test_s3_run_read_executable_allowlist(no_exec: list[list[str]]) -> None:
     assert no_exec == []
     proc.run_read(["git", "--version"], timeout=5)
     assert no_exec == [["git", "--version"]]
+
+
+# Read-only shapes (S1): run_read refuses anything that could change the machine.
+
+READ_ALLOWED = [
+    pytest.param(["git", "--version"], id="git-version"),
+    pytest.param(
+        ["git", "-C", "/r", "for-each-ref", "--merged=main", "--format=%(refname)", "refs/heads"],
+        id="git-for-each-ref",
+    ),
+    pytest.param(["git", "-C", "/r", "rev-parse", "--abbrev-ref", "HEAD"], id="git-rev-parse"),
+    pytest.param(["git", "-C", "/r", "merge-base", "--is-ancestor", "a", "b"], id="git-merge-base"),
+    pytest.param(["git", "-C", "/r", "log", "-1", "--format=%s", "x"], id="git-log"),
+    pytest.param(["git", "-C", "/r", "rev-list", "--count", "a..b"], id="git-rev-list"),
+    pytest.param(["git", "-C", "/r", "show-ref", "--verify", "refs/heads/x"], id="git-show-ref"),
+    pytest.param(["git", "-C", "/r", "check-ref-format", "--branch", "x"], id="git-check-ref"),
+    pytest.param(["docker", "ps", "-a", "--filter", "status=exited"], id="docker-ps"),
+    pytest.param(["docker", "inspect", CID], id="docker-inspect"),
+    pytest.param(["docker", "info"], id="docker-info"),
+    pytest.param(["docker", "version"], id="docker-version"),
+    pytest.param(["docker", "container", "ls", "-a"], id="docker-container-ls"),
+    pytest.param(["docker", "container", "inspect", CID], id="docker-container-inspect"),
+    pytest.param(["docker", "volume", "ls", "-f", "dangling=true"], id="docker-volume-ls"),
+    pytest.param(["docker", "volume", "inspect", "v"], id="docker-volume-inspect"),
+    pytest.param(["crontab", "-l"], id="crontab-l"),
+]
+
+READ_REFUSED = [
+    pytest.param(["crontab", "-r"], id="crontab-r"),
+    pytest.param(["crontab", "-e"], id="crontab-e"),
+    pytest.param(["crontab", "/tmp/new_crontab"], id="crontab-install-file"),
+    pytest.param(["crontab", "-l", "-u", "root"], id="crontab-l-extra"),
+    pytest.param(["crontab"], id="crontab-bare"),
+    pytest.param(["git", "-C", "/r", "branch", "-d", "x"], id="git-branch-d"),
+    pytest.param(["git", "-C", "/r", "branch", "-D", "x"], id="git-branch-D"),
+    pytest.param(["git", "-C", "/r", "branch", "new", SHA], id="git-branch-create"),
+    pytest.param(["git", "-C", "/r", "branch", "--list"], id="git-branch-list"),
+    pytest.param(["git", "branch", "-D", "x"], id="git-no-C"),
+    pytest.param(["git", "-C", "relative", "log"], id="git-relative-repo"),
+    pytest.param(["git", "-C", "/r"], id="git-no-subcommand"),
+    pytest.param(["git", "-c", "core.pager=sh", "-C", "/r", "log"], id="git-c-config"),
+    pytest.param(["git", "-C", "/r", "-c", "x=y", "log"], id="git-c-after-C"),
+    pytest.param(["git", "--git-dir=/other", "log"], id="git-git-dir"),
+    pytest.param(["git", "-C", "/r", "push"], id="git-push"),
+    pytest.param(["git", "-C", "/r", "update-ref", "-d", "refs/heads/x"], id="git-update-ref"),
+    pytest.param(["git", "-C", "/r", "symbolic-ref", "HEAD", "refs/heads/x"], id="git-symref"),
+    pytest.param(["git", "-C", "/r", "gc"], id="git-gc"),
+    pytest.param(["git", "-C", "/r", "log", "--output=/tmp/x"], id="git-log-output"),
+    pytest.param(["git", "-C", "/r", "log", "-p", "--ext-diff"], id="git-log-ext-diff"),
+    pytest.param(["git", "-C", "/r", "log", "--textconv"], id="git-log-textconv"),
+    pytest.param(["docker", "rm", CID], id="docker-rm"),
+    pytest.param(["docker", "rm", "-f", CID], id="docker-rm-f"),
+    pytest.param(["docker", "container", "rm", CID], id="docker-container-rm"),
+    pytest.param(["docker", "container", "prune"], id="docker-container-prune"),
+    pytest.param(["docker", "volume", "rm", "v"], id="docker-volume-rm"),
+    pytest.param(["docker", "volume", "prune"], id="docker-volume-prune"),
+    pytest.param(["docker", "system", "prune", "-af"], id="docker-system-prune"),
+    pytest.param(["docker", "kill", CID], id="docker-kill"),
+    pytest.param(["docker", "-H", "tcp://10.0.0.1:2375", "ps"], id="docker-remote-host"),
+    pytest.param(["docker", "--context", "remote", "ps"], id="docker-context"),
+    pytest.param(["docker"], id="docker-bare"),
+    pytest.param(["kill", "1"], id="kill"),
+]
+
+
+@pytest.mark.parametrize("args", READ_ALLOWED)
+def test_s1_run_read_allows_read_shapes(args: list[str], no_exec: list[list[str]]) -> None:
+    proc.run_read(args)
+    assert no_exec == [args]
+
+
+@pytest.mark.parametrize("args", READ_REFUSED)
+def test_s1_run_read_refuses_writes(args: list[str], no_exec: list[list[str]]) -> None:
+    with pytest.raises(proc.ReadRefused):
+        proc.run_read(args)
+    assert no_exec == []
+
+
+def test_s1_read_refused_is_command_refused() -> None:
+    assert issubclass(proc.ReadRefused, CommandRefused)
+    assert not issubclass(proc.ReadRefused, MutationRefused)
