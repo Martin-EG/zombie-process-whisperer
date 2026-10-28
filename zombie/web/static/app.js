@@ -78,6 +78,7 @@ function card(z) {
   top.appendChild(el("span", "age", ageText(z.age_days)));
   article.appendChild(top);
   article.appendChild(el("h3", "card-title", z.title));
+  if (z.where) article.appendChild(el("p", "card-where", z.where));
   article.appendChild(el("p", "eulogy", z.eulogy || ""));
 
   const details = el("details");

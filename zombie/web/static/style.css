@@ -119,6 +119,8 @@ main { flex: 1; padding: 16px 24px 32px; max-width: 1400px; width: 100%; margin:
 
 .card-title, .grave-title { font-size: 15px; overflow-wrap: anywhere; white-space: pre-wrap; }
 
+.card-where { margin: -4px 0 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
 .eulogy { margin: 0; font-style: italic; color: #c3cab9; overflow-wrap: anywhere; }
 .eulogy::before { content: "\201C"; color: var(--accent); }
 .eulogy::after { content: "\201D"; color: var(--accent); }

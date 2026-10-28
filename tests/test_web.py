@@ -223,6 +223,7 @@ def test_s6_bury_via_api(
     item = next(i for i in listing["zombies"] if i["id"] == z.id)
     assert item["command"] == f"git -C {repo} branch -d merged-feature"
     assert item["reversible"] is True
+    assert item["where"] == "app"  # repo folder relative to the scanned root
     assert item["eulogy"] == "Here lies merged-feature."
 
     before = refs(repo), state_files(zombie_home)

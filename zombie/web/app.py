@@ -31,7 +31,7 @@ from zombie import bury as bury_mod
 from zombie import proc, state
 from zombie.eulogy import eulogize_all, model_name
 from zombie.models import Zombie
-from zombie.report import tilde, visible
+from zombie.report import tilde, visible, where
 from zombie.scan import run_all
 
 log = logging.getLogger(__name__)
@@ -92,6 +92,7 @@ def create_app(
     }
     lock = threading.Lock()  # one rescan, bury, or resurrect at a time
     model = model_name() if use_model else "none (template eulogies)"
+    scan_root = Path(root).expanduser().resolve()
 
     def gate(request: Request) -> Response | None:
         """Steps 1-3 of the module docstring. Returns a rejection, or None to continue."""
@@ -144,6 +145,7 @@ def create_app(
         items = []
         for z in zombies:
             item: dict[str, Any] = z.model_dump()
+            item["where"] = where(z, scan_root)
             item["command"] = None
             item["reversible"] = None
             if z.buryable:
