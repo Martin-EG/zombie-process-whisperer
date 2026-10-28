@@ -40,7 +40,7 @@ _CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 _FENCE = re.compile(r"```[\w-]*")
 _LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 _LINE_MARKER = re.compile(r"(?m)^\s*(?:#{1,6}\s+|>\s*|[-*+]\s+|\d+[.)]\s+)")
-_PREAMBLE = re.compile(r"^(?:here(?:'|’)?s|here is)\b[^:]{0,80}\beulogy\b[^:]{0,40}:\s*", re.I)
+_PREAMBLE = re.compile(r"^(?:here(?:'|’)?s|here is)\b[^:]{0,80}\beulogy\b[^:]{0,200}:\s*", re.I)
 _EMPHASIS = re.compile(r"\*\*|__|~~|\*|`")
 _SENTENCE_END = re.compile(r"[.!?…][\"'”’)]*(?=\s|$)")
 # Docker's Status ends in a relative time ("Exited (0) 6 minutes ago") that changes every scan.
@@ -206,7 +206,7 @@ def eulogize_all(
         task = progress.add_task("eulogies", total=len(zombies))
         for z in zombies:
             key = cache_key(z)
-            text = cache.get(key, "")
+            text = clean(cache.get(key, ""))  # cached before a clean() fix? fix it now
             if not text and model_ok:
                 try:
                     live_client = live_client or get_client()

@@ -179,6 +179,10 @@ def test_short_reply_unchanged() -> None:
         "'\"Rest in peace, little branch.\"'",
         "Here’s a darkly funny eulogy for feature/login: “Rest in peace, little branch.”",
         "Here is your eulogy:\n\n**Rest in peace, little branch.**",
+        # Seen live from gemma3:1b: a long volume name pushes the colon past the old limit.
+        "Here's a darkly humorous eulogy for Docker volume "
+        "95262f4c5ace1267a7f80c63a9983721ad5d77596254083cf6aee186abfa44e1: "
+        "“Rest in peace, little branch.”",
     ],
 )
 def test_markdown_and_quotes_stripped(reply: str) -> None:
@@ -260,6 +264,18 @@ def test_cache_second_run_makes_no_calls() -> None:
     second = eulogy.eulogize_all([make_zombie(), make_zombie("docker_container")], client2)
     assert client2.calls == []
     assert [z.eulogy for z in second] == ["Gone but not forgotten."] * 2
+
+
+def test_cached_text_is_cleaned_on_read() -> None:
+    # Eulogies cached before a clean() fix get the fix too, without a new model call.
+    z = make_zombie()
+    state.save_eulogies(
+        {eulogy.cache_key(z): "Here's a eulogy for " + "f" * 64 + ": “Gone but not forgotten.”"}
+    )
+    client = FakeClient("A different eulogy.")
+    [out] = eulogy.eulogize_all([z], client)
+    assert client.calls == []
+    assert out.eulogy == "Gone but not forgotten."
 
 
 def test_cache_changed_facts_make_one_call() -> None:
