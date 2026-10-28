@@ -81,7 +81,29 @@ def format_buried_at(buried_at: str) -> str:
         return buried_at
 
 
-def build_table(zombies: list[Zombie]) -> Table:
+def where(z: Zombie, root: Path | None = None, home: str | None = None) -> str:
+    """Short label for where a zombie lives: its repo (relative to the scan root), a short
+    container id, "docker" for volumes, "crontab", or the process id."""
+    if z.kind == "git_branch":
+        repo = Path(z.location)
+        if root is not None:
+            if repo == root:
+                return root.name or str(root)
+            if repo.is_relative_to(root):
+                return repo.relative_to(root).as_posix()
+        return tilde(z.location, home)
+    if z.kind == "docker_container":
+        return z.location[:12]
+    if z.kind == "docker_volume":
+        return "docker"
+    if z.kind == "process":
+        return f"pid {z.location}"
+    return z.location
+
+
+def build_table(
+    zombies: list[Zombie], root: Path | None = None, home: str | None = None
+) -> Table:
     table = Table(box=box.SIMPLE_HEAD, pad_edge=False)
     table.add_column("ID", no_wrap=True, style="cyan", min_width=10)
     table.add_column("KIND", no_wrap=True)
@@ -97,7 +119,7 @@ def build_table(zombies: list[Zombie]) -> Table:
         table.add_row(
             cell(z.id),
             KIND_SHORT[z.kind],
-            cell(z.title),
+            f"{cell(z.title)}\n[dim]{cell(where(z, root, home))}[/dim]",
             format_age(z.age_days),
             buryable,
             cell(z.eulogy or ""),
@@ -106,13 +128,21 @@ def build_table(zombies: list[Zombie]) -> Table:
     return table
 
 
-def print_report(zombies: list[Zombie], console: Console | None = None) -> None:
-    """Print the zombie table grouped by kind, or a short message when there are none."""
+def print_report(
+    zombies: list[Zombie],
+    console: Console | None = None,
+    root: Path | None = None,
+    home: str | None = None,
+) -> None:
+    """Print the zombie table grouped by kind, or a short message when there are none.
+
+    Branch repos are shown relative to `root` (the scanned folder) when they are inside it.
+    """
     console = console or Console()
     if not zombies:
         console.print(EMPTY_MESSAGE, highlight=False)
         return
-    console.print(build_table(zombies))
+    console.print(build_table(zombies, root, home))
 
 
 def print_graveyard(

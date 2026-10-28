@@ -85,6 +85,35 @@ def test_report_groups_by_kind_and_shows_buryable() -> None:
         assert header in text
 
 
+def test_report_shows_where_each_zombie_lives() -> None:
+    zombies = [
+        *sample(),
+        zombie("git_branch", "old", f"{HOME}/elsewhere/lib"),
+        zombie("docker_volume", "pgdata", "pgdata"),
+        zombie("process", "railway", "4242"),
+    ]
+    console = record(width=140)
+    report.print_report(zombies, console, root=Path(f"{HOME}/projects"), home=HOME)
+    text = console.export_text()
+    assert "app" in text.split()  # repo relative to the scan root
+    assert f"{HOME}/elsewhere/lib" not in text  # outside the root: shown with ~
+    assert "~/elsewhere/lib" in text
+    assert "bbbbbbbbbbbb" in text and "b" * 13 not in text  # short container id
+    assert "4242" in text
+
+
+def test_where_labels() -> None:
+    root = Path(f"{HOME}/projects")
+    assert report.where(zombie("git_branch", "b", f"{HOME}/projects/a/api"), root, HOME) == "a/api"
+    assert report.where(zombie("git_branch", "b", f"{HOME}/projects"), root, HOME) == "projects"
+    assert report.where(zombie("git_branch", "b", "/srv/x"), root, HOME) == "/srv/x"
+    assert report.where(zombie("git_branch", "b", f"{HOME}/x"), None, HOME) == "~/x"
+    assert report.where(zombie("docker_container", "c", "f" * 64), root, HOME) == "f" * 12
+    assert report.where(zombie("docker_volume", "v", "v"), root, HOME) == "docker"
+    assert report.where(zombie("cron_job", "/x.sh", "crontab"), root, HOME) == "crontab"
+    assert report.where(zombie("process", "p", "42"), root, HOME) == "pid 42"
+
+
 def test_report_fits_100_columns_with_long_eulogy() -> None:
     long = "Here lies a very long eulogy " * 12
     zombies = [*sample(), zombie("process", "p" * 80, "1", eulogy=long)]

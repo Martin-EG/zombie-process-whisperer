@@ -88,7 +88,7 @@ def _scan(root: str, out: str, use_model: bool = True, stale_days: int = 90) -> 
         return 2
     zombies = eulogize_all(run_all(path, stale_days=stale_days), use_model=use_model)
     state.save_last_scan(zombies)
-    print_report(zombies)
+    print_report(zombies, root=path.resolve())
     write_graveyard_md(zombies, out_path, root=path)
     buryable = sum(z.buryable for z in zombies)
     print(
