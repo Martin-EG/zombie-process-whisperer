@@ -1,5 +1,7 @@
 # Zombie Process Whisperer
 
+![Zombie Process Whisperer: a hooded skeleton with a shovel in a graveyard of stale branches, exited containers and zombie processes](docs/images/banner.png)
+
 Find the abandoned things haunting your machine, hear their eulogies, and bury the safe ones.
 
 Zombie Process Whisperer scans your own computer for:
@@ -15,6 +17,8 @@ A small open-weight model running locally through [Ollama](https://ollama.com) w
 Everything runs offline. Repo names, commit messages, and paths never leave your machine: the only network connection is to Ollama on `127.0.0.1:11434`.
 
 Built for the Hacktoberfest "Ghost in the Machine" challenge (open-source AI at the core).
+
+![zombie scan running in a terminal, then the report table with eulogies](docs/images/zombie-scan.gif)
 
 ---
 
@@ -74,7 +78,9 @@ ollama serve
 zombie scan ~/projects
 ```
 
-This is a read-only report. It prints a table of every zombie with its id, kind, name, age, and eulogy, and saves the same report to `./graveyard.md`.
+This is a read-only report. It prints a table of every zombie with its id, kind, name, where it lives, age, and eulogy, and saves the same report to `./graveyard.md`.
+
+![zombie scan output: two merged branches, an exited container and three zombie processes, each with a eulogy](docs/images/zombie-scan.png)
 
 To delete a merged branch from the report, first do a dry run with its id:
 
@@ -144,6 +150,8 @@ Starts the local web UI. See [The web UI](#the-web-ui).
 zombie ui ~/projects
 ```
 
+![zombie ui printing its one-time local URL](docs/images/zombie-ui-start.png)
+
 The UI runs a scan, then opens `http://127.0.0.1:8765/?token=...` in your browser. That link works **once**: the token is swapped for a session cookie, and the link stops working after that. If you lose the session, restart `zombie ui` to get a new link.
 
 In the UI you can:
@@ -152,6 +160,8 @@ In the UI you can:
 - **Rescan** at any time
 - **Bury** an item. The dialog shows the exact command that will run and whether it can be undone. **Dry run** is checked by default; uncheck it and type the exact name to actually delete
 - See the **Graveyard** and resurrect buried branches from it
+
+![The web UI: a card per zombie with its kind, name, folder, age, eulogy and a Bury button](docs/images/zombie-ui.png)
 
 The server listens only on `127.0.0.1` and refuses requests from other sites. See [Safety model](#safety-model).
 
@@ -182,6 +192,8 @@ Burying a branch:
 5. Only then does it run `git branch -d`. Git refuses to delete a branch that isn't merged, so `-D` (force) is never used.
 
 Burying a container works the same way, except there is no undo. The tool re-checks that the container still exists with the same id and name and is still exited, and warns you that the removal is permanent before you confirm. `docker rm` is never run with `-f`.
+
+![Burying an exited container: the plan, the docker rm command, a warning that it cannot be undone, and the typed name confirmation](docs/images/zombie-bury.png)
 
 Resurrecting runs `git -C <repo> branch <branch> <sha>` with the SHA from the undo log, then marks the graveyard entry as resurrected. The history stays, so you can bury and resurrect the same branch again.
 
